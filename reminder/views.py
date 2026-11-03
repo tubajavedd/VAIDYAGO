@@ -26,7 +26,11 @@ def create_reminder(request):
     duration = int(data["duration_days"])
     end_date = start_date + timedelta(days=duration)
 
-    first_time = TIME_MAP[data["times"][0]]
+    times = [str(t).strip().lower() for t in data.get("times", []) if str(t).strip()]
+    if not times:
+        times = ["morning"]
+
+    first_time = TIME_MAP.get(times[0], "08:00")
 
     next_trigger = datetime.strptime(
         f"{start_date} {first_time}",
@@ -39,7 +43,7 @@ def create_reminder(request):
         dosage=data["dosage"],
         frequency=data["frequency"],
         duration_days=duration,
-        times=data["times"],
+        times=times,
         start_date=start_date,
         end_date=end_date,
         next_trigger=next_trigger
@@ -74,16 +78,17 @@ def update_reminder(request, id):
 
     # Handle times update (recalculate next_trigger)
     if "times" in data and isinstance(data["times"], list) and len(data["times"]) > 0:
-        reminder.times = data["times"]
-        first_time = TIME_MAP.get(data["times"][0].lower(), "08:00")
-        try:
-            new_trigger_time = datetime.strptime(first_time, "%H:%M").time()
-            reminder.next_trigger = datetime.combine(datetime.today().date(), new_trigger_time)
-            # If time has already passed today, set for tomorrow
-            if reminder.next_trigger < datetime.now():
-                reminder.next_trigger += timedelta(days=1)
-        except Exception:
-            pass
+        reminder.times = [str(t).strip().lower() for t in data["times"] if str(t).strip()]
+        if reminder.times:
+            first_time = TIME_MAP.get(reminder.times[0], "08:00")
+            try:
+                new_trigger_time = datetime.strptime(first_time, "%H:%M").time()
+                reminder.next_trigger = datetime.combine(datetime.today().date(), new_trigger_time)
+                # If time has already passed today, set for tomorrow
+                if reminder.next_trigger < datetime.now():
+                    reminder.next_trigger += timedelta(days=1)
+            except Exception:
+                pass
 
     reminder.save()
     return Response({"message": "Reminder updated successfully"})

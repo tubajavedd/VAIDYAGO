@@ -10,6 +10,7 @@ from django.db.models.functions import TruncMonth
 
 # 🔹 CREATE
 
+import threading
 from django.db import transaction
 from DoctorSlot.models import TimeSlot
 
@@ -147,6 +148,23 @@ from django.core.mail import send_mail
 from Notifications.models import Notification
 from AdminLogin.models import User
 
+
+def send_email_async(subject, message, from_email, recipient_list, fail_silently=True):
+    def worker():
+        try:
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=from_email,
+                recipient_list=recipient_list,
+                fail_silently=fail_silently,
+            )
+        except Exception:
+            pass
+
+    threading.Thread(target=worker, daemon=True).start()
+
+
 def notify_appointment_change(appt, title, message):
     user_obj = None
     
@@ -171,12 +189,12 @@ def notify_appointment_change(appt, title, message):
     # 4. Send Email
     recipient = appt.patient_email or (user_obj.email if user_obj else None)
     if recipient:
-        send_mail(
+        send_email_async(
             subject=title,
             message=message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[recipient],
-            fail_silently=True
+            fail_silently=True,
         )
 
 

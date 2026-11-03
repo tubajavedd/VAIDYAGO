@@ -2,6 +2,7 @@ import os
 import jwt
 import json
 import phonenumbers
+from urllib.parse import parse_qs
 
 from phonenumbers import NumberParseException
 from datetime import timedelta
@@ -18,6 +19,8 @@ from django.core.mail import send_mail, EmailMessage
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.permissions import BasePermission
+from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
+from rest_framework.exceptions import ParseError
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -216,9 +219,22 @@ def admin_signup_page(request):
 # ****************** LOGIN ******************
 class AdminLoginView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
 
     def post(self, request):
-        serializer = AdminLoginSerializer(data=request.data)
+        try:
+            parsed_data = request.data
+        except ParseError:
+            parsed_data = {}
+            raw_body = request.body.decode('utf-8', errors='ignore') if request.body else ''
+            if raw_body:
+                try:
+                    parsed_data = json.loads(raw_body)
+                except json.JSONDecodeError:
+                    parsed_data = {k: v[0] if len(v) == 1 else v for k, v in parse_qs(raw_body).items()}
+
+        serializer = AdminLoginSerializer(data=parsed_data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
 

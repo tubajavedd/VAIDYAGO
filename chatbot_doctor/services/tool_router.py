@@ -195,6 +195,10 @@ class ToolRouter:
         from django.utils import timezone
         import datetime
 
+        # Ensure data is a dict
+        if data is None:
+            data = {}
+
         # 1. Parse Dates (Support relative 'today', 'tomorrow')
         today = timezone.now().date()
         

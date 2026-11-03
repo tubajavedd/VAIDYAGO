@@ -30,7 +30,7 @@ def doctor_chat_view(request):
             status=status.HTTP_400_BAD_REQUEST
         )
 
-    message = serializer.validated_data.get("message", "").strip()
+    message = str(serializer.validated_data.get("message", "")).strip()
     session_id = serializer.validated_data.get("session_id")
     audio_file = request.FILES.get("audio")
 

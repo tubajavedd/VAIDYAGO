@@ -16,7 +16,9 @@ def platform_admin_chat_view(request):
     """
     Main chat endpoint for platform administrators.
     """
-    if request.user.role != "ADMIN":
+    # Allow platform access to users with explicit ADMIN role, staff, or superuser
+    user_role = getattr(request.user, 'role', None)
+    if not (user_role == "ADMIN" or getattr(request.user, 'is_staff', False) or getattr(request.user, 'is_superuser', False)):
         return Response(
             {"success": False, "error": "Only platform administrators can access this chatbot."},
             status=status.HTTP_403_FORBIDDEN
